@@ -7,6 +7,12 @@
 - [A2A with MCP as Registry](#a2a-with-mcp-as-registry)
   - [Table of Contents](#table-of-contents)
   - [Recent Improvements](#recent-improvements)
+  - [🔒 Security & Environment Configuration](#-security--environment-configuration)
+    - [Environment Setup](#environment-setup)
+    - [Required API Keys](#required-api-keys)
+    - [Security Best Practices](#security-best-practices)
+    - [Verifying Your Setup](#verifying-your-setup)
+    - [MCP Server Configuration](#mcp-server-configuration)
   - [Objective](#objective)
   - [Background](#background)
     - [A2A Protocol](#a2a-protocol)
@@ -22,6 +28,8 @@
     - [Architectural Components](#architectural-components)
   - [Example Flow: Travel Agent](#example-flow-travel-agent)
   - [Steps to execute the example](#steps-to-execute-the-example)
+    - [Prerequisites](#prerequisites)
+    - [Starting the System](#starting-the-system)
     - [File/Directory Descriptions](#filedirectory-descriptions)
 
 ## Recent Improvements
@@ -34,6 +42,83 @@ The framework has been enhanced with enterprise-grade features based on the late
 - **📊 Enhanced Architecture**: Improved resilience and monitoring capabilities
 
 See [IMPROVEMENTS.md](IMPROVEMENTS.md) for detailed documentation.
+
+## 🔒 Security & Environment Configuration
+
+**IMPORTANT**: This project requires API keys and credentials that must NEVER be committed to version control.
+
+### Environment Setup
+
+1. **Copy the example environment file**:
+   ```bash
+   # For general use
+   cp .env.example .env
+
+   # For Market Oracle features
+   cp .env.market_oracle.example .env
+   ```
+
+2. **Fill in your actual API keys and credentials** in the `.env` file
+
+3. **Never commit the `.env` file** - it's already in `.gitignore`
+
+### Required API Keys
+
+This project integrates with multiple external services. Configure only the services you plan to use:
+
+#### Core Services (Required)
+- **GOOGLE_API_KEY**: Google Gemini API for LLM capabilities
+  - Get it from: https://aistudio.google.com/apikey
+
+#### Optional Services
+
+**Data Sources**
+- **SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PASSWORD**: For data warehousing
+- **SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY**: For real-time database
+- **SEMANTIC_SCHOLAR_API_KEY**: For academic research (optional, has free tier)
+
+**Web Search & Scraping**
+- **BRAVE_API_KEY**: For web search capabilities
+- **FIRECRAWL_API_KEY**: For web scraping
+- **BRIGHTDATA_API_TOKEN**: For advanced web data extraction
+
+**ML & AI Services**
+- **HUGGINGFACE_API_KEY**: For accessing ML models
+- **ELEVENLABS_API_KEY**: For text-to-speech audio generation
+
+**Other Integrations**
+- **NOTION_API_KEY**: For documentation and note-taking
+- **GOOGLE_TRENDS_API_KEY** (SerpAPI): For trend analysis
+- **N8N_WEBHOOK_URL, N8N_API_KEY**: For workflow automation
+
+### Security Best Practices
+
+1. **Never share your `.env` file** or commit it to version control
+2. **Rotate API keys regularly** - especially if you suspect they've been exposed
+3. **Use separate keys** for development and production environments
+4. **Limit key permissions** - only grant the minimum required access
+5. **Monitor key usage** - watch for unauthorized access in service dashboards
+6. **Use secrets management** - Consider HashiCorp Vault or cloud secret managers for production
+
+### Verifying Your Setup
+
+Check if your API keys are properly configured:
+
+```bash
+python check_services.py
+```
+
+This will verify that required environment variables are set (without displaying their values).
+
+### MCP Server Configuration
+
+The `.mcp.json` file contains MCP server configurations. This file is generated from your `.env` variables:
+
+```bash
+python generate_mcp_config.py
+```
+
+**Note**: `.mcp.json` is also in `.gitignore` as it may contain derived credentials.
 
 ## Objective
 
@@ -169,6 +254,24 @@ flowchart LR
 
 This sample is built using 3 ADK agents to execute the tasks and a LangGraph agent that works as a planner.
 All the 3 ADK agents use the same python code but are instantiated with different agent cards.
+
+### Prerequisites
+
+Before starting the agents, ensure you have:
+
+1. **Set up your environment**:
+   ```bash
+   # Copy and configure environment variables
+   cp .env.example .env
+   # Edit .env and add your GOOGLE_API_KEY and other required keys
+   ```
+
+2. **Verify your setup**:
+   ```bash
+   python check_services.py
+   ```
+
+### Starting the System
 
 1. Start the MCP Server:
 
