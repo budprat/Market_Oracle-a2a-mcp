@@ -1,0 +1,66 @@
+name: Coverage Report
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras
+
+    - name: Run tests with coverage
+      env:
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY_TEST }}
+      run: |
+        uv run pytest tests/ -v \
+          --cov=src/a2a_mcp \
+          --cov-report=xml \
+          --cov-report=html \
+          --cov-report=term-missing \
+          -m "not slow"
+
+    - name: Coverage comment
+      uses: py-cov-action/python-coverage-comment-action@v3
+      with:
+        GITHUB_TOKEN: ${{ github.token }}
+        MINIMUM_GREEN: 70
+        MINIMUM_ORANGE: 50
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        flags: tests
+        name: codecov-umbrella
+        fail_ci_if_error: true
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Generate coverage badge
+      run: |
+        uv run coverage-badge -o coverage.svg -f
+
+    - name: Upload coverage HTML
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-html-report
+        path: htmlcov/

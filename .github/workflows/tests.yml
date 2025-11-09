@@ -1,0 +1,147 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop, claude/** ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+        cache-dependency-glob: "uv.lock"
+
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras
+
+    - name: Lint with ruff
+      run: |
+        uv run ruff check src/ tests/ --output-format=github
+      continue-on-error: true
+
+    - name: Run unit tests
+      env:
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY_TEST }}
+      run: |
+        uv run pytest tests/unit -v --cov=src/a2a_mcp --cov-report=xml --cov-report=term -m "unit"
+
+    - name: Run integration tests
+      env:
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY_TEST }}
+      run: |
+        uv run pytest tests/integration -v --cov=src/a2a_mcp --cov-append --cov-report=xml --cov-report=term -m "integration and not slow"
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-${{ matrix.python-version }}
+        fail_ci_if_error: false
+
+    - name: Generate coverage report
+      run: |
+        uv run coverage html
+
+    - name: Upload coverage HTML
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-${{ matrix.python-version }}
+        path: htmlcov/
+
+  test-slow:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras
+
+    - name: Run slow integration tests
+      env:
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY_TEST }}
+      run: |
+        uv run pytest tests/integration -v -m "slow"
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras
+        uv add --dev ruff
+
+    - name: Lint with ruff
+      run: |
+        uv run ruff check src/ tests/
+
+    - name: Check formatting with ruff
+      run: |
+        uv run ruff format --check src/ tests/
+
+  type-check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras
+        uv add --dev mypy
+
+    - name: Type check with mypy
+      run: |
+        uv run mypy src/a2a_mcp --ignore-missing-imports
+      continue-on-error: true
