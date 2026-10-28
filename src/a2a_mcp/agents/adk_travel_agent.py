@@ -11,7 +11,7 @@ from a2a_mcp.common.agent_runner import AgentRunner
 from a2a_mcp.common.base_agent import BaseAgent
 from a2a_mcp.common.utils import get_mcp_server_config, init_api_key
 from google.adk.agents import Agent
-from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, SseServerParams
+from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, SseConnectionParams
 from google.genai import types as genai_types
 
 
@@ -40,7 +40,7 @@ class TravelAgent(BaseAgent):
         config = get_mcp_server_config()
         logger.info(f'MCP Server url={config.url}')
         tools = await MCPToolset(
-            connection_params=SseServerParams(url=config.url)
+            connection_params=SseConnectionParams(url=config.url)
         ).get_tools()
 
         for tool in tools:
